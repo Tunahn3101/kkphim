@@ -11,7 +11,7 @@ import SwiftUI
 struct kkphimApp: App {
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            MovieListView()
         }
     }
 }
