@@ -34,15 +34,47 @@ class APIService {
     
     private init() {}
     
+    private func decodingDetails(from error: DecodingError) -> (path: String, reason: String, underlying: String?) {
+        switch error {
+        case .typeMismatch(_, let context):
+            let path = (context.codingPath.map { $0.stringValue }.joined(separator: "."))
+            let reason = context.debugDescription
+            let underlying = (context.underlyingError as NSError?)?.localizedDescription
+            return (path.isEmpty ? "<root>" : path, reason, underlying)
+        case .valueNotFound(_, let context):
+            let path = (context.codingPath.map { $0.stringValue }.joined(separator: "."))
+            let reason = context.debugDescription
+            let underlying = (context.underlyingError as NSError?)?.localizedDescription
+            return (path.isEmpty ? "<root>" : path, reason, underlying)
+        case .keyNotFound(let missingKey, let context):
+            let path = (context.codingPath.map { $0.stringValue }.joined(separator: "."))
+            var reason = context.debugDescription
+            reason = "Key not found: \(missingKey.stringValue). " + reason
+            let underlying = (context.underlyingError as NSError?)?.localizedDescription
+            return (path.isEmpty ? "<root>" : path, reason, underlying)
+        case .dataCorrupted(let context):
+            let path = (context.codingPath.map { $0.stringValue }.joined(separator: "."))
+            let reason = context.debugDescription
+            let underlying = (context.underlyingError as NSError?)?.localizedDescription
+            return (path.isEmpty ? "<root>" : path, reason, underlying)
+        @unknown default:
+            return ("<unknown>", "Unknown decoding error", nil)
+        }
+    }
+    
     /// Lấy danh sách phim mới cập nhật (Format 1)
     func fetchLatestMovies(page: Int) async throws -> (movies: [Movie], pagination: Pagination?) {
         guard let url = URL(string: "\(baseURL)/danh-sach/phim-moi-cap-nhat?page=\(page)") else {
             throw APIError.invalidURL
         }
         
+        let start = CFAbsoluteTimeGetCurrent()
+        NetworkLogger.logRequest(url)
         let (data, response) = try await URLSession.shared.data(from: url)
+        NetworkLogger.logResponse(url, response: response, data: data, error: nil, startTime: start)
         
         guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
+            NetworkLogger.logResponse(url, response: response, data: nil, error: APIError.serverError("HTTP status not OK"), startTime: start)
             throw APIError.serverError("Máy chủ trả về lỗi hoặc không phản hồi.")
         }
         
@@ -54,6 +86,15 @@ class APIService {
                 throw APIError.serverError(decodedResponse.msg)
             }
         } catch {
+            #if DEBUG
+            if let decErr = error as? DecodingError {
+                let details = decodingDetails(from: decErr)
+                print("🧩 DecodingError at \(details.path): \(details.reason)")
+                if let underlying = details.underlying { print("↪︎ Underlying: \(underlying)") }
+            } else {
+                print("🧩 Decode failed: \(error.localizedDescription)")
+            }
+            #endif
             throw APIError.decodingError(error)
         }
     }
@@ -64,9 +105,13 @@ class APIService {
             throw APIError.invalidURL
         }
         
+        let start = CFAbsoluteTimeGetCurrent()
+        NetworkLogger.logRequest(url)
         let (data, response) = try await URLSession.shared.data(from: url)
+        NetworkLogger.logResponse(url, response: response, data: data, error: nil, startTime: start)
         
         guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
+            NetworkLogger.logResponse(url, response: response, data: nil, error: APIError.serverError("HTTP status not OK"), startTime: start)
             throw APIError.serverError("Máy chủ trả về lỗi.")
         }
         
@@ -78,6 +123,15 @@ class APIService {
                 throw APIError.serverError(decodedResponse.msg)
             }
         } catch {
+            #if DEBUG
+            if let decErr = error as? DecodingError {
+                let details = decodingDetails(from: decErr)
+                print("🧩 DecodingError at \(details.path): \(details.reason)")
+                if let underlying = details.underlying { print("↪︎ Underlying: \(underlying)") }
+            } else {
+                print("🧩 Decode failed: \(error.localizedDescription)")
+            }
+            #endif
             throw APIError.decodingError(error)
         }
     }
@@ -88,9 +142,13 @@ class APIService {
             throw APIError.invalidURL
         }
         
+        let start = CFAbsoluteTimeGetCurrent()
+        NetworkLogger.logRequest(url)
         let (data, response) = try await URLSession.shared.data(from: url)
+        NetworkLogger.logResponse(url, response: response, data: data, error: nil, startTime: start)
         
         guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
+            NetworkLogger.logResponse(url, response: response, data: nil, error: APIError.serverError("HTTP status not OK"), startTime: start)
             throw APIError.serverError("Không thể lấy thông tin chi tiết phim.")
         }
         
@@ -102,6 +160,15 @@ class APIService {
                 throw APIError.serverError(decodedResponse.msg)
             }
         } catch {
+            #if DEBUG
+            if let decErr = error as? DecodingError {
+                let details = decodingDetails(from: decErr)
+                print("🧩 DecodingError at \(details.path): \(details.reason)")
+                if let underlying = details.underlying { print("↪︎ Underlying: \(underlying)") }
+            } else {
+                print("🧩 Decode failed: \(error.localizedDescription)")
+            }
+            #endif
             throw APIError.decodingError(error)
         }
     }
@@ -113,9 +180,13 @@ class APIService {
             throw APIError.invalidURL
         }
         
+        let start = CFAbsoluteTimeGetCurrent()
+        NetworkLogger.logRequest(url)
         let (data, response) = try await URLSession.shared.data(from: url)
+        NetworkLogger.logResponse(url, response: response, data: data, error: nil, startTime: start)
         
         guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
+            NetworkLogger.logResponse(url, response: response, data: nil, error: APIError.serverError("HTTP status not OK"), startTime: start)
             throw APIError.serverError("Không thể tìm kiếm phim lúc này.")
         }
         
@@ -127,6 +198,15 @@ class APIService {
                 throw APIError.serverError(decodedResponse.msg)
             }
         } catch {
+            #if DEBUG
+            if let decErr = error as? DecodingError {
+                let details = decodingDetails(from: decErr)
+                print("🧩 DecodingError at \(details.path): \(details.reason)")
+                if let underlying = details.underlying { print("↪︎ Underlying: \(underlying)") }
+            } else {
+                print("🧩 Decode failed: \(error.localizedDescription)")
+            }
+            #endif
             throw APIError.decodingError(error)
         }
     }
@@ -137,15 +217,28 @@ class APIService {
             throw APIError.invalidURL
         }
         
+        let start = CFAbsoluteTimeGetCurrent()
+        NetworkLogger.logRequest(url)
         let (data, response) = try await URLSession.shared.data(from: url)
+        NetworkLogger.logResponse(url, response: response, data: data, error: nil, startTime: start)
         
         guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
+            NetworkLogger.logResponse(url, response: response, data: nil, error: APIError.serverError("HTTP status not OK"), startTime: start)
             throw APIError.serverError("Không thể tải danh sách thể loại.")
         }
         
         do {
             return try JSONDecoder().decode([Category].self, from: data)
         } catch {
+            #if DEBUG
+            if let decErr = error as? DecodingError {
+                let details = decodingDetails(from: decErr)
+                print("🧩 DecodingError at \(details.path): \(details.reason)")
+                if let underlying = details.underlying { print("↪︎ Underlying: \(underlying)") }
+            } else {
+                print("🧩 Decode failed: \(error.localizedDescription)")
+            }
+            #endif
             throw APIError.decodingError(error)
         }
     }
@@ -156,15 +249,28 @@ class APIService {
             throw APIError.invalidURL
         }
         
+        let start = CFAbsoluteTimeGetCurrent()
+        NetworkLogger.logRequest(url)
         let (data, response) = try await URLSession.shared.data(from: url)
+        NetworkLogger.logResponse(url, response: response, data: data, error: nil, startTime: start)
         
         guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
+            NetworkLogger.logResponse(url, response: response, data: nil, error: APIError.serverError("HTTP status not OK"), startTime: start)
             throw APIError.serverError("Không thể tải danh sách quốc gia.")
         }
         
         do {
             return try JSONDecoder().decode([Country].self, from: data)
         } catch {
+            #if DEBUG
+            if let decErr = error as? DecodingError {
+                let details = decodingDetails(from: decErr)
+                print("🧩 DecodingError at \(details.path): \(details.reason)")
+                if let underlying = details.underlying { print("↪︎ Underlying: \(underlying)") }
+            } else {
+                print("🧩 Decode failed: \(error.localizedDescription)")
+            }
+            #endif
             throw APIError.decodingError(error)
         }
     }
@@ -175,9 +281,13 @@ class APIService {
             throw APIError.invalidURL
         }
         
+        let start = CFAbsoluteTimeGetCurrent()
+        NetworkLogger.logRequest(url)
         let (data, response) = try await URLSession.shared.data(from: url)
+        NetworkLogger.logResponse(url, response: response, data: data, error: nil, startTime: start)
         
         guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
+            NetworkLogger.logResponse(url, response: response, data: nil, error: APIError.serverError("HTTP status not OK"), startTime: start)
             throw APIError.serverError("Không thể tải phim theo thể loại.")
         }
         
@@ -189,6 +299,15 @@ class APIService {
                 throw APIError.serverError(decodedResponse.msg)
             }
         } catch {
+            #if DEBUG
+            if let decErr = error as? DecodingError {
+                let details = decodingDetails(from: decErr)
+                print("🧩 DecodingError at \(details.path): \(details.reason)")
+                if let underlying = details.underlying { print("↪︎ Underlying: \(underlying)") }
+            } else {
+                print("🧩 Decode failed: \(error.localizedDescription)")
+            }
+            #endif
             throw APIError.decodingError(error)
         }
     }
@@ -199,9 +318,13 @@ class APIService {
             throw APIError.invalidURL
         }
         
+        let start = CFAbsoluteTimeGetCurrent()
+        NetworkLogger.logRequest(url)
         let (data, response) = try await URLSession.shared.data(from: url)
+        NetworkLogger.logResponse(url, response: response, data: data, error: nil, startTime: start)
         
         guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
+            NetworkLogger.logResponse(url, response: response, data: nil, error: APIError.serverError("HTTP status not OK"), startTime: start)
             throw APIError.serverError("Không thể tải phim theo quốc gia.")
         }
         
@@ -213,6 +336,15 @@ class APIService {
                 throw APIError.serverError(decodedResponse.msg)
             }
         } catch {
+            #if DEBUG
+            if let decErr = error as? DecodingError {
+                let details = decodingDetails(from: decErr)
+                print("🧩 DecodingError at \(details.path): \(details.reason)")
+                if let underlying = details.underlying { print("↪︎ Underlying: \(underlying)") }
+            } else {
+                print("🧩 Decode failed: \(error.localizedDescription)")
+            }
+            #endif
             throw APIError.decodingError(error)
         }
     }
@@ -234,9 +366,13 @@ class APIService {
             throw APIError.invalidURL
         }
         
+        let start = CFAbsoluteTimeGetCurrent()
+        NetworkLogger.logRequest(url)
         let (data, response) = try await URLSession.shared.data(from: url)
+        NetworkLogger.logResponse(url, response: response, data: data, error: nil, startTime: start)
         
         guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
+            NetworkLogger.logResponse(url, response: response, data: nil, error: APIError.serverError("HTTP status not OK"), startTime: start)
             throw APIError.serverError("Không thể tải danh sách phim theo bộ lọc.")
         }
         
@@ -248,9 +384,17 @@ class APIService {
                 throw APIError.serverError(decodedResponse.msg)
             }
         } catch {
+            #if DEBUG
+            if let decErr = error as? DecodingError {
+                let details = decodingDetails(from: decErr)
+                print("🧩 DecodingError at \(details.path): \(details.reason)")
+                if let underlying = details.underlying { print("↪︎ Underlying: \(underlying)") }
+            } else {
+                print("🧩 Decode failed: \(error.localizedDescription)")
+            }
+            #endif
             throw APIError.decodingError(error)
         }
     }
 }
-
 
